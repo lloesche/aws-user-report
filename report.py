@@ -15,6 +15,7 @@ from pprint import pprint
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import json
 
 
 logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -39,6 +40,7 @@ def main(argv):
     p.add_argument('--smtp-subject', help='Email Subject', dest='smtp_subject', type=str,
                    default='AWS User Report')
     p.add_argument('--verbose', '-v', help='Verbose logging', dest='verbose', action='store_true', default=False)
+    p.add_argument('--json', help='Dump Report as JSON', dest='fmt_json', action='store_true', default=False)
     args = p.parse_args(argv)
     if args.verbose:
         logging.getLogger('__main__').setLevel(logging.DEBUG)
@@ -48,15 +50,22 @@ def main(argv):
     report_html = html_report(reports)
 
     if args.smtp_to:
-        email_report(args, report_html)
+        if args.fmt_json:
+            email_report(args, report_html, json.dumps(reports, cls=ReportEncoder, indent=2))
+        else:
+            email_report(args, report_html)
     else:
-        log.debug('Printing report to STDOUT')
-        print(report_html)
+        if args.fmt_json:
+            log.debug('Printing JSON report to STDOUT')
+            print(json.dumps(reports, cls=ReportEncoder, indent=2))
+        else:
+            log.debug('Printing HTML report to STDOUT')
+            print(report_html)
 
 
-def email_report(args, report_html):
+def email_report(args, report_html,
+                 report_plain='Unsupported Client. Please view with an Email Client that supports HTML.'):
     log.debug('Sending Report by Email via {}:{}'.format(args.smtp_server, args.smtp_port))
-    report_plain = "Unsupported Client. Please view with an Email Client that supports HTML."
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = args.smtp_subject
@@ -257,7 +266,9 @@ class UserReport:
 
         users = list(csv_reader)
         p = ThreadPool(50)
-        return {'name': self.name, 'report': list(p.map(self.add_user_properties, users))}
+        return {'name': self.name,
+                'report': list(p.map(self.add_user_properties, users))
+                }
 
     def add_user_properties(self, user):
         self.log.debug('Assembling Properties for user {}'.format(user['user']))
@@ -342,6 +353,12 @@ class UserReport:
             ui.extend(items['PolicyNames'])
         return ui
 
+
+class ReportEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(self, o)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
