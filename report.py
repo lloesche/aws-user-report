@@ -196,7 +196,7 @@ def report2html(name, report):
                                             user['password_last_used']]))
             r['active'] = days_ago(last_active)
             last_active_days = (datetime.utcnow() - last_active).days
-            color_index = int(remap(last_active_days, 0, alert_days, 0, len(color_gradient)-1))
+            color_index = round(remap(last_active_days, 0, alert_days, 0, len(color_gradient)-1))
             r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[color_index])
         except ValueError:
             r['active'] = img['never']
@@ -282,12 +282,7 @@ def days_ago(dt):
 
 def color_mix(in_color, mix_color):
     def mix(in_color, mix_color):
-        in_r, in_g, in_b = in_color
-        mix_r, mix_g, mix_b = mix_color
-        r = int((in_r + mix_r) / 2)
-        g = int((in_g + mix_g) / 2)
-        b = int((in_b + mix_b) / 2)
-        return r, g, b
+        return tuple(round(sum(x) / 2) for x in zip(in_color, mix_color))
     if isinstance(in_color, list):
         out_colors = list()
         for color in in_color:
