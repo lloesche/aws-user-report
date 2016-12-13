@@ -212,16 +212,51 @@ def report2html(name, report):
 
         r['access_key'] = img['true'] if user['access_key_1_active'] or user['access_key_2_active'] else img['false']
         r['password'] = img['true'] if user['password_enabled'] else img['false']
+        r['last_service'] = last_service(user)
 
-        if user['access_key_1_last_used_service'] and user['access_key_1_last_used_region'] and \
-            user['access_key_1_last_used_date']:
-            r['last_service'] = '{} in {}, {}'.format(user['access_key_1_last_used_service'],
-                                                      user['access_key_1_last_used_region'],
-                                                      days_ago(user['access_key_1_last_used_date']))
         rows.append(r)
     html = jinja2.Template(report_template)
     log.debug('Creating HTML report snippet')
     return html.render(rows=rows, name=name)
+
+
+def last_service(user):
+    compare = False
+    key_1 = False
+    key_2 = False
+    if user['access_key_1_last_used_date'] and user['access_key_2_last_used_date']:
+        compare = True
+    if user['access_key_1_last_used_service'] \
+            and user['access_key_1_last_used_region'] \
+            and user['access_key_1_last_used_date']:
+        key_1 = True
+    if user['access_key_2_last_used_service'] \
+            and user['access_key_2_last_used_region'] \
+            and user['access_key_2_last_used_date']:
+        key_2 = True
+
+    if compare and key_1 and key_2:
+        if user['access_key_1_last_used_date'] > user['access_key_2_last_used_date']:
+            last_service_str = '{} in {}, {}'.format(user['access_key_1_last_used_service'],
+                                                     user['access_key_1_last_used_region'],
+                                                     days_ago(user['access_key_1_last_used_date']))
+        else:
+            last_service_str = '{} in {}, {}'.format(user['access_key_2_last_used_service'],
+                                                     user['access_key_2_last_used_region'],
+                                                     days_ago(user['access_key_2_last_used_date']))
+    elif key_1:
+        last_service_str = '{} in {}, {}'.format(user['access_key_1_last_used_service'],
+                                                 user['access_key_1_last_used_region'],
+                                                 days_ago(user['access_key_1_last_used_date']))
+
+    elif key_2:
+        last_service_str = '{} in {}, {}'.format(user['access_key_2_last_used_service'],
+                                                 user['access_key_2_last_used_region'],
+                                                 days_ago(user['access_key_2_last_used_date']))
+    else:
+        last_service_str = ''
+
+    return last_service_str
 
 
 def days_ago(dt):
