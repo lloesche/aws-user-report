@@ -18,8 +18,8 @@ from email.mime.text import MIMEText
 
 
 logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(message)s')
-logging.getLogger('__main__').setLevel(logging.DEBUG)
-logging.getLogger('UserReport').setLevel(logging.DEBUG)
+logging.getLogger('__main__').setLevel(logging.INFO)
+logging.getLogger('UserReport').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
 
 
@@ -29,25 +29,33 @@ def main(argv):
                    dest='aws_credentials', nargs='+', type=aws_credentials)
     p.add_argument('--smtp-server', help='SMTP Server Hostname', dest='smtp_server', type=str, default='localhost')
     p.add_argument('--smtp-port', help='SMTP Server Port', dest='smtp_port', type=int, default=25)
-    p.add_argument('--smtp-ssl', help='SMTP uses SSL (not STARTTLS)', dest='smtp_ssl', action='store_true', default=False)
+    p.add_argument('--smtp-ssl', help='SMTP uses SSL (not STARTTLS)', dest='smtp_ssl', action='store_true',
+                   default=False)
     p.add_argument('--smtp-login', help='SMTP Server Login', dest='smtp_login', type=str)
     p.add_argument('--smtp-password', help='SMTP Server Password', dest='smtp_password', type=str)
-    p.add_argument('--smtp-from', help='Email From', dest='smtp_from', type=str)
+    p.add_argument('--smtp-from', help='Email From', dest='smtp_from', type=str, default='noreply@example.com')
     p.add_argument('--smtp-to', help='Email To', dest='smtp_to', type=str, nargs='+')
     p.add_argument('--smtp-subject', help='Email Subject', dest='smtp_subject', type=str,
                    default='AWS User Report')
+    p.add_argument('--verbose', '-v', help='Verbose logging', dest='verbose', action='store_true', default=False)
     args = p.parse_args(argv)
+    if args.verbose:
+        logging.getLogger('__main__').setLevel(logging.DEBUG)
+        logging.getLogger('UserReport').setLevel(logging.DEBUG)
+
     reports = get_reports(args)
-    report = html_report(reports)
+    report_html = html_report(reports)
+
     if args.smtp_to:
-        email_report(args, report)
+        email_report(args, report_html)
     else:
-        print(report)
+        log.debug('Printing report to STDOUT')
+        print(report_html)
 
 
 def email_report(args, report_html):
-
-    report_plain = "unsupported client"
+    log.debug('Sending Report by Email via {}:{}'.format(args.smtp_server, args.smtp_port))
+    report_plain = "Unsupported Client. Please view with an Email Client that supports HTML."
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = args.smtp_subject
@@ -118,6 +126,7 @@ def html_report(reports):
     for report in reports:
         html_reports.append(report2html(report['name'], report['report']))
 
+    log.debug('Assembling final HTML report')
     return html.render(body=''.join(html_reports))
 
 
@@ -141,11 +150,11 @@ def report2html(name, report):
     <table style="border: 1px solid black;border-collapse: collapse;">
         <tr class="center">
             <td style="border: 1px solid black;border-collapse: collapse;"><b>User</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last Active</b></td>
+            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last active</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Created</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Access Key</b></td>
+            <td style="border: 1px solid black;border-collapse: collapse;"><b>Access Key(s)</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Password</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Password Changed</b></td>
+            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last changed</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Groups</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Policies</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Last Service</b></td>
@@ -201,6 +210,7 @@ def report2html(name, report):
                                                       days_ago(user['access_key_1_last_used_date']))
         rows.append(r)
     html = jinja2.Template(report_template)
+    log.debug('Creating HTML report snippet')
     return html.render(rows=rows, name=name)
 
 
@@ -223,7 +233,7 @@ class UserReport:
         self.log = logging.getLogger(__name__)
 
     def report(self):
-        self.log.info('Generating Report')
+        self.log.info('Generating Report "{}"'.format(self.name))
         session = boto3.session.Session(aws_access_key_id=self._access_key_id,
                                         aws_secret_access_key=self._secret_access_key)
         iam = session.client('iam')
