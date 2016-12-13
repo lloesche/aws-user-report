@@ -106,27 +106,8 @@ def html_report(reports):
     <head>
         <meta charset="utf-8">
         <title>AWS User Report</title>
-        <style>
-            body {
-                font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
-                font-style:normal;
-                font-weight:400;
-                text-transform:none;text-shadow:none;text-decoration:none;text-rendering:optimizelegibility
-                color: #000000;
-            }
-            table {
-                border-collapse: collapse;
-            }
-            table, th, td {
-                border: 1px solid black;
-            }
-            tr:nth-child(even) {background-color: #f2f2f2}
-            tr:hover {background-color: #f5f5f5}
-            td {vertical-align: bottom; padding-left: 3px; padding-right: 3px;}
-            .center {text-align: center;}
-        </style>
     </head>
-    <body>
+    <body style="font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-style:normal;font-weight:400;text-transform:none;text-shadow:none;text-decoration:none;text-rendering:optimizelegibility;color: #000000;">
         {{ body }}
     </body>
     </html>
@@ -159,27 +140,27 @@ def report2html(name, report):
     report_template = """    <h3>{{ name }}</h3>
     <table style="border: 1px solid black;border-collapse: collapse;">
         <tr class="center">
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>User</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last active</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Created</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Access Key(s)</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Password</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last changed</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Groups</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Policies</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last Service used by an Access Key</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>User</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Last active</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Created</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Access Key(s)</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Password</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Last changed</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Groups</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Policies</b></td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;"><b>Last Service used by an Access Key</b></td>
         </tr>
         {%- for row in rows %}
         <tr style="background-color: {{ row.color }}">
-            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap">{{ row.user|e }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: {{ row.active_align }};">{{ row.active }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.created }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;text-align: center;">{{ row.access_key }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;text-align: center;">{{ row.password }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: {{ row.password_changed_align }};">{{ row.password_changed }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;">{{ row.groups }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;">{{ row.policies }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;">{{ row.last_service }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;white-space:nowrap">{{ row.user|e }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: {{ row.active_align }};">{{ row.active }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.created }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;text-align: center;">{{ row.access_key }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;text-align: center;">{{ row.password }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: {{ row.password_changed_align }};">{{ row.password_changed }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;">{{ row.groups }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;">{{ row.policies }}</td>
+            <td style="padding-left: 3px; padding-right: 3px;border: 1px solid black;border-collapse: collapse;">{{ row.last_service }}</td>
         </tr>
         {%- endfor %}
     </table>
