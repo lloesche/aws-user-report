@@ -137,7 +137,7 @@ def html_report(reports):
         html_reports.append(report2html(report['name'], report['report']))
 
     log.debug('Assembling final HTML report')
-    return html.render(body=''.join(html_reports))
+    return html.render(body='<br/><br/><br/>'.join(html_reports))
 
 
 def aws_credentials(credentials):
@@ -172,11 +172,11 @@ def report2html(name, report):
         {%- for row in rows %}
         <tr style="background-color: {{ row.color }}">
             <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap">{{ row.user|e }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.active }}</td>
+            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: {{ row.active_align }};">{{ row.active }}</td>
             <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.created }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;">{{ row.access_key }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;">{{ row.password }}</td>
-            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.password_changed }}</td>
+            <td style="border: 1px solid black;border-collapse: collapse;text-align: center;">{{ row.access_key }}</td>
+            <td style="border: 1px solid black;border-collapse: collapse;text-align: center;">{{ row.password }}</td>
+            <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: {{ row.password_changed_align }};">{{ row.password_changed }}</td>
             <td style="border: 1px solid black;border-collapse: collapse;">{{ row.groups }}</td>
             <td style="border: 1px solid black;border-collapse: collapse;">{{ row.policies }}</td>
             <td style="border: 1px solid black;border-collapse: collapse;">{{ row.last_service }}</td>
@@ -189,15 +189,22 @@ def report2html(name, report):
     # mix it with white to make it easy on the eyes
     mix_color = (255, 255, 255)
     color_gradient = color_mix(gyr_gradient(), mix_color)
+
+    # how many days after account creation before
+    # an account that never logged in is considered dead
+    initial_wait_days = 60
     alert_days = 365  # anything after this will be considered dead
+
     for user in sorted(report, key=itemgetter('user')):
         r = {
             'user': user['user'],
             'active': '',
+            'active_align': 'right',
             'created': '',
             'access_key': '',
             'password': '',
             'password_changed': '',
+            'password_changed_align': 'right',
             'groups': ', '.join(user['groups']),
             'policies': ', '.join(user['policies']),
             'last_service': '',
@@ -212,14 +219,19 @@ def report2html(name, report):
             r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[color_index])
         except ValueError:
             r['active'] = img['never']
+            r['active_align'] = 'center'
 
         if user['user'] == '<root_account>':
+            r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[0])
+
+        if (datetime.utcnow() - user['user_creation_time']).days < initial_wait_days:
             r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[0])
 
         if user['password_last_changed']:
             r['password_changed'] = days_ago(user['password_last_changed'])
         else:
             r['password_changed'] = img['never']
+            r['password_changed_align'] = 'center'
         r['created'] = days_ago(user['user_creation_time'])
 
         r['access_key'] = img['true'] if user['access_key_1_active'] or user['access_key_2_active'] else img['false']
