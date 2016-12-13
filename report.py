@@ -335,8 +335,6 @@ class UserReport:
         for key in str_keys:
             if user[key] in err_vals:
                 user[key] = None
-        user['groups'] = list()
-        user['policies'] = list()
         user['groups'] = self.user_groups(user['user'])
         user['policies'] = self.user_policies(user['user'])
         return user
