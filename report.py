@@ -149,10 +149,10 @@ def aws_credentials(credentials):
 
 
 def report2html(name, report):
-    img = {'n/a': '&#x274E;',
+    img = {'n/a': '&#x2796;',
            'never': '&#x2716;',
-           'true': '&#x2705;',
-           'false': '&#x274E;'
+           'true': '&#x2714;',
+           'false': '&#x2796;'
            }
 
     # Need to duplicate style elements for certain Email clients
@@ -167,7 +167,7 @@ def report2html(name, report):
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Last changed</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Groups</b></td>
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Policies</b></td>
-            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last Service</b></td>
+            <td style="border: 1px solid black;border-collapse: collapse;"><b>Last Service used by an Access Key</b></td>
         </tr>
         {%- for row in rows %}
         <tr style="background-color: {{ row.color }}">
@@ -228,10 +228,15 @@ def report2html(name, report):
             r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[0])
 
         if user['password_last_changed']:
-            r['password_changed'] = days_ago(user['password_last_changed'])
+            if user['user_creation_time'].date() == user['password_last_changed'].date():
+                r['password_changed_align'] = 'center'
+                r['password_changed'] = img['never']
+            else:
+                r['password_changed'] = days_ago(user['password_last_changed'])
         else:
-            r['password_changed'] = img['never']
             r['password_changed_align'] = 'center'
+            r['password_changed'] = img['never'] if user['password_enabled'] else img['n/a']
+
         r['created'] = days_ago(user['user_creation_time'])
 
         r['access_key'] = img['true'] if user['access_key_1_active'] or user['access_key_2_active'] else img['false']
