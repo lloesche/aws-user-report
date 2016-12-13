@@ -25,11 +25,12 @@ log = logging.getLogger(__name__)
 
 def main(argv):
     p = argparse.ArgumentParser(description='Generate AWS IAM User Report')
-    p.add_argument('--aws-credentials', '-c', help='AWS Credentials as access_key_id,secret_access_key',
-                   dest='aws_credentials', nargs='+', type=aws_credentials)
+    p.add_argument('--aws-credentials', '-c',
+                   help='AWS Credentials as: SOME_REPORT_NAME,ACCESS_KEY_ID,SECRET_ACCESS_KEY', dest='aws_credentials',
+                   nargs='+', type=aws_credentials)
     p.add_argument('--smtp-server', help='SMTP Server Hostname', dest='smtp_server', type=str, default='localhost')
     p.add_argument('--smtp-port', help='SMTP Server Port', dest='smtp_port', type=int, default=25)
-    p.add_argument('--smtp-ssl', help='SMTP uses SSL (not STARTTLS)', dest='smtp_ssl', action='store_true',
+    p.add_argument('--smtp-ssl', help='SMTP Server uses SSL (not STARTTLS)', dest='smtp_ssl', action='store_true',
                    default=False)
     p.add_argument('--smtp-login', help='SMTP Server Login', dest='smtp_login', type=str)
     p.add_argument('--smtp-password', help='SMTP Server Password', dest='smtp_password', type=str)
