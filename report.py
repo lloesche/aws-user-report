@@ -150,7 +150,7 @@ def aws_credentials(credentials):
 
 def report2html(name, report):
     img = {'n/a': '&#x274E;',
-           'never': '&#x2757;',
+           'never': '&#x2716;',
            'true': '&#x2705;',
            'false': '&#x274E;'
            }
@@ -170,7 +170,7 @@ def report2html(name, report):
             <td style="border: 1px solid black;border-collapse: collapse;"><b>Last Service</b></td>
         </tr>
         {%- for row in rows %}
-        <tr>
+        <tr style="background-color: {{ row.color }}">
             <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap">{{ row.user|e }}</td>
             <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.active }}</td>
             <td style="border: 1px solid black;border-collapse: collapse;white-space:nowrap; text-align: right;">{{ row.created }}</td>
@@ -185,6 +185,11 @@ def report2html(name, report):
     </table>
 """
     rows = list()
+    # we get a gradient from green over yellow to red and then
+    # mix it with white to make it easy on the eyes
+    mix_color = (255, 255, 255)
+    color_gradient = color_mix(gyr_gradient(), mix_color)
+    alert_days = 365  # anything after this will be considered dead
     for user in sorted(report, key=itemgetter('user')):
         r = {
             'user': user['user'],
@@ -195,14 +200,21 @@ def report2html(name, report):
             'password_changed': '',
             'groups': ', '.join(user['groups']),
             'policies': ', '.join(user['policies']),
-            'last_service': ''
+            'last_service': '',
+            'color': '#{:02x}{:02x}{:02x}'.format(*color_gradient[-1])
         }
         try:
-            r['active'] = days_ago(max(filter(None,
-                                              [user['access_key_1_last_used_date'], user['access_key_2_last_used_date'],
-                                               user['password_last_used']])))
+            last_active = max(filter(None, [user['access_key_1_last_used_date'], user['access_key_2_last_used_date'],
+                                            user['password_last_used']]))
+            r['active'] = days_ago(last_active)
+            last_active_days = (datetime.utcnow() - last_active).days
+            color_index = int(remap(last_active_days, 0, alert_days, 0, len(color_gradient)-1))
+            r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[color_index])
         except ValueError:
             r['active'] = img['never']
+
+        if user['user'] == '<root_account>':
+            r['color'] = '#{:02x}{:02x}{:02x}'.format(*color_gradient[0])
 
         if user['password_last_changed']:
             r['password_changed'] = days_ago(user['password_last_changed'])
@@ -268,6 +280,54 @@ def days_ago(dt):
         return 'yesterday'
     else:
         return '{} days ago'.format(days)
+
+
+def color_mix(in_color, mix_color):
+    def mix(in_color, mix_color):
+        in_r, in_g, in_b = in_color
+        mix_r, mix_g, mix_b = mix_color
+        r = int((in_r + mix_r) / 2)
+        g = int((in_g + mix_g) / 2)
+        b = int((in_b + mix_b) / 2)
+        return r, g, b
+    if isinstance(in_color, list):
+        out_colors = list()
+        for color in in_color:
+            out_colors.append(mix(color, mix_color))
+        return out_colors
+    else:
+        return mix(in_color, mix_color)
+
+
+def gyr_gradient():
+    g = 255
+    r = 0
+    b = 0
+    gradient = list()
+    gradient.append((r, g, b))
+    increment = 1
+    if increment == 0:
+        increment = 1
+    while r < 255:
+        r += increment
+        if r > 255:
+            r = 255
+        gradient.append((r, g, b))
+    while g > 0:
+        g -= increment
+        if g < 0:
+            g = 0
+        gradient.append((r, g, b))
+    return gradient
+
+
+def remap(x, in_min, in_max, out_min, out_max, min_max_cutoff=True):
+    if min_max_cutoff:
+        if x < in_min:
+            x = in_min
+        elif x > in_max:
+            x = in_max
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
 class UserReport:
