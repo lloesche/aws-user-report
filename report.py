@@ -411,7 +411,7 @@ class UserReport:
 
     def user_groups(self, user):
         if user == '<root_account>':
-            return ['root']
+            return []
         self.log.debug('Fetching Groups for user {}'.format(user))
         session = boto3.session.Session(aws_access_key_id=self._access_key_id,
                                         aws_secret_access_key=self._secret_access_key)
