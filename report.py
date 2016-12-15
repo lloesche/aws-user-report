@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import boto3
+import botocore.exceptions
 import time
 import dateutil.parser
 from datetime import datetime
@@ -41,13 +42,15 @@ def main(argv):
                    default='AWS User Report')
     p.add_argument('--verbose', '-v', help='Verbose logging', dest='verbose', action='store_true', default=False)
     p.add_argument('--json', help='Dump Report as JSON', dest='fmt_json', action='store_true', default=False)
+    p.add_argument('--header', help='Report Header', dest='report_header', type=str, default='')
+    p.add_argument('--footer', help='Report Footer', dest='report_footer', type=str, default='')
     args = p.parse_args(argv)
     if args.verbose:
         logging.getLogger('__main__').setLevel(logging.DEBUG)
         logging.getLogger('UserReport').setLevel(logging.DEBUG)
 
     reports = get_reports(args)
-    report_html = html_report(reports)
+    report_html = html_report(reports, args)
 
     if args.smtp_to:
         if args.fmt_json:
@@ -100,16 +103,18 @@ def get_reports(args):
     return reports
 
 
-def html_report(reports):
+def html_report(reports, args):
     page_template = """<!doctype html>
     <html lang="en">
     <head>
         <meta charset="utf-8">
         <title>AWS User Report</title>
     </head>
+    {{ header }}
     <body style="font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-style:normal;font-weight:400;text-transform:none;text-shadow:none;text-decoration:none;text-rendering:optimizelegibility;color: #000000;">
         {{ body }}
     </body>
+    {{ footer }}
     </html>
     """
     html_reports = list()
@@ -118,7 +123,7 @@ def html_report(reports):
         html_reports.append(report2html(report['name'], report['report']))
 
     log.debug('Assembling final HTML report')
-    return html.render(body='<br/><br/><br/>'.join(html_reports))
+    return html.render(body='<br/><br/><br/>'.join(html_reports), header=args.report_header, footer=args.report_footer)
 
 
 def aws_credentials(credentials):
@@ -292,15 +297,17 @@ def color_mix(in_color, mix_color):
         return mix(in_color, mix_color)
 
 
-def gyr_gradient():
-    g = 255
+def gyr_gradient(increment=1):
     r = 0
+    g = 255
     b = 0
     gradient = list()
     gradient.append((r, g, b))
-    increment = 1
-    if increment == 0:
+
+    if increment < 1:
         increment = 1
+    elif increment > 255:
+        increment = 255
     while r < 255:
         r += increment
         if r > 255:
@@ -388,8 +395,18 @@ class UserReport:
         for key in str_keys:
             if user[key] in err_vals:
                 user[key] = None
-        user['groups'] = self.user_groups(user['user'])
-        user['policies'] = self.user_policies(user['user'])
+
+        user['groups'] = list()
+        user['policies'] = list()
+        try:
+            user['groups'] = self.user_groups(user['user'])
+            user['policies'] = self.user_policies(user['user'])
+        except botocore.exceptions.ClientError as e:
+            if '(NoSuchEntity)' in str(e):
+                user['user'] += ' [DELETED]'
+                pass
+            else:
+                raise
         return user
 
     def user_groups(self, user):
