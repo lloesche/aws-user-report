@@ -407,6 +407,7 @@ class UserReport:
                 pass
             else:
                 raise
+
         return user
 
     def user_groups(self, user):

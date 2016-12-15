@@ -25,5 +25,6 @@ Create Report for multiple AWS Accounts and send it by Email
             --smtp-password mysmtppassword \
             --smtp-from ops@example.com \
             --smtp-to lukas@example.com \
+                      ops@example.com \
             --footer "&copy; 2016 ACME Inc."
 ```
