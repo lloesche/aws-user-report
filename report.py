@@ -23,10 +23,36 @@ logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(levelname)s - %(
 logging.getLogger('__main__').setLevel(logging.INFO)
 logging.getLogger('UserReport').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
+args = None
 
 
 def main(argv):
+    global args
     p = argparse.ArgumentParser(description='Generate AWS IAM User Report')
+    p = add_args(p)
+    args = p.parse_args(argv)
+    if args.verbose:
+        logging.getLogger('__main__').setLevel(logging.DEBUG)
+        logging.getLogger('UserReport').setLevel(logging.DEBUG)
+
+    reports = get_reports()
+    report_html = html_report(reports)
+
+    if args.smtp_to:
+        if args.fmt_json:
+            email_report(args, report_html, json.dumps(reports, cls=ReportEncoder, indent=2))
+        else:
+            email_report(args, report_html)
+    else:
+        if args.fmt_json:
+            log.debug('Printing JSON report to STDOUT')
+            print(json.dumps(reports, cls=ReportEncoder, indent=2))
+        else:
+            log.debug('Printing HTML report to STDOUT')
+            print(report_html)
+
+
+def add_args(p):
     p.add_argument('--aws-credentials', '-c',
                    help='AWS Credentials as: SOME_REPORT_NAME,ACCESS_KEY_ID,SECRET_ACCESS_KEY', dest='aws_credentials',
                    nargs='+', type=aws_credentials)
@@ -44,26 +70,12 @@ def main(argv):
     p.add_argument('--json', help='Dump Report as JSON', dest='fmt_json', action='store_true', default=False)
     p.add_argument('--header', help='Report Header', dest='report_header', type=str, default='')
     p.add_argument('--footer', help='Report Footer', dest='report_footer', type=str, default='')
-    args = p.parse_args(argv)
-    if args.verbose:
-        logging.getLogger('__main__').setLevel(logging.DEBUG)
-        logging.getLogger('UserReport').setLevel(logging.DEBUG)
-
-    reports = get_reports(args)
-    report_html = html_report(reports, args)
-
-    if args.smtp_to:
-        if args.fmt_json:
-            email_report(args, report_html, json.dumps(reports, cls=ReportEncoder, indent=2))
-        else:
-            email_report(args, report_html)
-    else:
-        if args.fmt_json:
-            log.debug('Printing JSON report to STDOUT')
-            print(json.dumps(reports, cls=ReportEncoder, indent=2))
-        else:
-            log.debug('Printing HTML report to STDOUT')
-            print(report_html)
+    p.add_argument('--wait-days',
+                   help='Days after account creation before an account that never logged in is considered dead (Default: 60)',
+                   dest='wait_days', type=int, default=60)
+    p.add_argument('--alert-days', help='Days of inactivity after which an account is considered dead (Default: 365)',
+                   dest='alert_days', type=int, default=365)
+    return p
 
 
 def email_report(args, report_html,
@@ -91,7 +103,7 @@ def email_report(args, report_html,
     s.quit()
 
 
-def get_reports(args):
+def get_reports():
     reports = list()
     if args.aws_credentials:
         for name, access_key_id, secret_access_key in args.aws_credentials:
@@ -103,7 +115,7 @@ def get_reports(args):
     return reports
 
 
-def html_report(reports, args):
+def html_report(reports):
     page_template = """<!doctype html>
     <html lang="en">
     <head>
@@ -178,8 +190,8 @@ def report2html(name, report):
 
     # how many days after account creation before
     # an account that never logged in is considered dead
-    initial_wait_days = 60
-    alert_days = 365  # anything after this will be considered dead
+    initial_wait_days = args.wait_days
+    alert_days = args.alert_days  # anything after this will be considered dead
 
     for user in sorted(report, key=itemgetter('user')):
         r = {
@@ -463,6 +475,7 @@ class ReportEncoder(json.JSONEncoder):
         if isinstance(o, datetime):
             return o.isoformat()
         return super().default(self, o)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
